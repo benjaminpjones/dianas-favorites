@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Diana's Favorites</title>
+<style>
+  body {
+    margin: 0;
+    font-family: 'Comic Sans MS', 'Marker Felt', sans-serif;
+    background: #87CEEB;
+    min-height: 100vh;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  h1 {
+    text-align: center;
+    color: #FF1493;
+    font-size: 44px;
+    margin: 15px 0 5px;
+    text-shadow: 3px 3px 0 #fff, 6px 6px 0 #FFD700;
+  }
+
+  .question {
+    text-align: center;
+    color: #4B0082;
+    font-size: 26px;
+    margin-bottom: 10px;
+    font-weight: bold;
+  }
+
+  .stage {
+    position: relative;
+    width: 100%;
+    height: 560px;
+    margin: 0 auto;
+    overflow: hidden;
+  }
+
+  /* The ground: grass on top, then thick dirt where the pit is dug */
+  .ground {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 230px;
+    background:
+      linear-gradient(to bottom,
+        #7CB342 0%,
+        #689F38 18px,
+        #8B5A2B 18px,
+        #8B5A2B 40px,
+        #6B4423 100%);
+    z-index: 1;
+  }
+  /* Little dirt texture spots */
+  .ground::before {
+    content: '';
+    position: absolute;
+    inset: 40px 0 0 0;
+    background-image:
+      radial-gradient(circle at 10% 30%, #4a2e1a 2px, transparent 3px),
+      radial-gradient(circle at 30% 70%, #4a2e1a 2px, transparent 3px),
+      radial-gradient(circle at 55% 20%, #5C3317 2px, transparent 3px),
+      radial-gradient(circle at 75% 60%, #4a2e1a 2px, transparent 3px),
+      radial-gradient(circle at 90% 35%, #5C3317 2px, transparent 3px),
+      radial-gradient(circle at 20% 90%, #5C3317 2px, transparent 3px);
+    opacity: 0.6;
+  }
+
+  /* The closed mystery box */
+  .box {
+    position: absolute;
+    left: 50%;
+    top: 20px;
+    transform: translateX(-50%);
+    width: 220px;
+    height: 220px;
+    background: linear-gradient(135deg, #B8860B 0%, #DAA520 50%, #B8860B 100%);
+    border: 8px solid #5C3317;
+    border-radius: 12px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.4), inset 0 -10px 20px rgba(0,0,0,0.2);
+    overflow: hidden;
+  }
+
+  /* Wooden plank lines on the box */
+  .box::before, .box::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #5C3317;
+    opacity: 0.4;
+  }
+  .box::before { top: 33%; }
+  .box::after { top: 66%; }
+
+  /* The question mark on the box */
+  .box-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 120px;
+    color: #5C3317;
+    font-weight: bold;
+    text-shadow: 4px 4px 0 rgba(255,255,255,0.3);
+    transition: opacity 0.4s;
+  }
+
+  /* Hidden contents only visible on reveal */
+  .box-contents {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 80px;
+    text-align: center;
+  }
+
+  .box.revealed .box-label { opacity: 0; }
+  .box.revealed .box-contents { transform: translate(-50%, -50%) scale(1); }
+
+  /* The red circle shown for color reveal */
+  .circle-red {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #FF6B6B, #DC143C);
+    box-shadow: inset -10px -10px 20px rgba(0,0,0,0.2);
+  }
+
+  /* Triangle for shape reveal */
+  .triangle {
+    width: 0;
+    height: 0;
+    border-left: 70px solid transparent;
+    border-right: 70px solid transparent;
+    border-bottom: 120px solid #FF8C00;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+  }
+
+  /* The pit — a hole carved INTO the ground */
+  .pit {
+    position: absolute;
+    bottom: 30px;
+    left: 18%;
+    width: 280px;
+    height: 110px;
+    background:
+      radial-gradient(ellipse at 50% 30%,
+        #000 0%,
+        #050200 40%,
+        #1a0e05 80%,
+        #3a2515 100%);
+    border-radius: 50%;
+    box-shadow:
+      inset 0 25px 30px rgba(0,0,0,0.95),
+      inset 0 -10px 20px rgba(0,0,0,0.6);
+    overflow: hidden;
+    z-index: 2;
+  }
+  /* A subtle darker ring of disturbed dirt right around the rim */
+  .pit::before {
+    content: '';
+    position: absolute;
+    inset: -10px -8px -6px -8px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse,
+      transparent 60%,
+      rgba(74,46,26,0.7) 70%,
+      rgba(58,37,21,0.5) 85%,
+      transparent 100%);
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  /* Little fallen victims inside the pit */
+  .fallen {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 2px solid #222;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  }
+  .fallen::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 18px;
+    height: 18px;
+    background: #FFDBAC;
+    border: 2px solid #222;
+    border-radius: 50%;
+  }
+
+  /* The person */
+  .person {
+    position: absolute;
+    bottom: 220px;
+    left: 65%;
+    width: 60px;
+    height: 100px;
+    transition: all 1.2s cubic-bezier(0.5, -0.5, 0.75, 0.75);
+    z-index: 5;
+  }
+
+  .person.falling {
+    bottom: 50px;
+    left: 28%;
+    transform: rotate(540deg) scale(0.4);
+    opacity: 0;
+  }
+
+  .head {
+    width: 40px;
+    height: 40px;
+    background: #FFDBAC;
+    border-radius: 50%;
+    margin: 0 auto;
+    position: relative;
+    border: 2px solid #333;
+  }
+
+  .head::before, .head::after {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: #000;
+    border-radius: 50%;
+    top: 14px;
+  }
+  .head::before { left: 10px; }
+  .head::after { right: 10px; }
+
+  .mouth {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 6px;
+    border-bottom: 2px solid #000;
+    border-radius: 0 0 14px 14px;
+  }
+
+  .body {
+    width: 50px;
+    height: 50px;
+    background: #4169E1;
+    margin: -2px auto 0;
+    border-radius: 8px;
+    border: 2px solid #333;
+  }
+
+  /* Diana's hand holding the person */
+  .hand {
+    position: absolute;
+    bottom: 295px;
+    left: calc(65% + 30px);
+    width: 55px;
+    height: 35px;
+    background: #FFDBAC;
+    border-radius: 50% 50% 30% 30%;
+    border: 3px solid #8B4513;
+    transition: all 0.6s;
+    z-index: 6;
+  }
+
+  .hand.released {
+    transform: translateY(30px) rotate(50deg);
+    opacity: 0;
+  }
+
+  /* Diana's high-five hand */
+  .highfive {
+    position: absolute;
+    bottom: 285px;
+    left: 50%;
+    transform: translateX(-50%) scale(0);
+    width: 90px;
+    height: 90px;
+    background: #FFDBAC;
+    border-radius: 50%;
+    border: 3px solid #8B4513;
+    transition: all 0.4s;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 50px;
+  }
+
+  .highfive.show {
+    transform: translateX(-50%) scale(1) rotate(360deg);
+  }
+
+  /* Controls */
+  .controls {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255,255,255,0.95);
+    padding: 18px 28px;
+    border-radius: 20px;
+    border: 4px solid #FF1493;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    text-align: center;
+    z-index: 100;
+  }
+
+  .controls label {
+    font-size: 20px;
+    color: #4B0082;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .input-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .input-and {
+    font-size: 22px;
+    color: #4B0082;
+    font-weight: bold;
+  }
+
+  input[type="text"] {
+    font-size: 24px;
+    padding: 8px 12px;
+    border: 3px solid #4B0082;
+    border-radius: 10px;
+    text-align: center;
+    width: 180px;
+    font-family: inherit;
+  }
+
+  button {
+    font-size: 22px;
+    padding: 8px 22px;
+    background: #FF1493;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: bold;
+  }
+  button:hover { background: #FF69B4; }
+
+  .message {
+    position: absolute;
+    top: 250px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 32px;
+    font-weight: bold;
+    text-align: center;
+    padding: 12px 25px;
+    border-radius: 15px;
+    background: rgba(255,255,255,0.95);
+    opacity: 0;
+    transition: opacity 0.4s;
+    pointer-events: none;
+    z-index: 20;
+    white-space: nowrap;
+  }
+
+  .message.show { opacity: 1; }
+  .message.right { color: #228B22; border: 4px solid #228B22; }
+  .message.wrong { color: #DC143C; border: 4px solid #DC143C; }
+
+  .score {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: white;
+    padding: 10px 18px;
+    border-radius: 15px;
+    border: 3px solid #FFD700;
+    font-size: 18px;
+    color: #4B0082;
+  }
+</style>
+</head>
+<body>
+
+<h1>Diana's Favorites</h1>
+<p class="question" id="question">What is Diana's favorite color?</p>
+
+<div class="score">
+  Saved: <span id="saved">0</span> | Fell in pit: <span id="fell">0</span>
+</div>
+
+<div class="stage">
+  <div class="box" id="box">
+    <div class="box-label">?</div>
+    <div class="box-contents" id="boxContents"></div>
+  </div>
+
+  <div class="ground">
+    <div class="pit" id="pit"></div>
+  </div>
+
+  <div class="hand" id="hand"></div>
+
+  <div class="person" id="person">
+    <div class="head"><div class="mouth"></div></div>
+    <div class="body"></div>
+  </div>
+
+  <div class="highfive" id="highfive">🖐️</div>
+
+  <div class="message" id="message"></div>
+</div>
+
+<div class="controls">
+  <label id="inputLabel" for="guess1">Type your guess:</label>
+  <div class="input-row">
+    <input type="text" id="guess1" autocomplete="off" autofocus>
+    <span class="input-and" id="andLabel" style="display:none;">AND</span>
+    <input type="text" id="guess2" autocomplete="off" style="display:none;">
+    <button id="goBtn">Guess!</button>
+  </div>
+</div>
+
+<script>
+  // Each round has a question, accepted answers (array of arrays — for ANDs, two arrays),
+  // and HTML to show inside the box on reveal.
+  const ROUNDS = [
+    {
+      question: "What is Diana's favorite color?",
+      answers: [['red']],
+      reveal: '<div class="circle-red"></div>'
+    },
+    {
+      question: "What are Diana's TWO favorite animals?",
+      answers: [['baby chick', 'chick', 'babychick'], ['penguin', 'penguins']],
+      reveal: '<span>🐥</span><span>🐧</span>'
+    },
+    {
+      question: "What is Diana's favorite car?",
+      answers: [['tesla']],
+      reveal: '<span>🚗</span><span style="font-size:30px;color:#cc0000;font-weight:bold;">TESLA</span>'
+    },
+    {
+      question: "What is Diana's favorite shape?",
+      answers: [['triangle']],
+      reveal: '<div class="triangle"></div>'
+    },
+    {
+      question: "What are Diana's TWO favorite sports?",
+      answers: [['gymnastics', 'gymnastic'], ['skiing', 'ski']],
+      reveal: '<span>🤸</span><span>⛷️</span>'
+    },
+    {
+      question: "What is Diana's favorite vehicle?",
+      answers: [['airplane', 'plane', 'aeroplane']],
+      reveal: '<span>✈️</span>'
+    }
+  ];
+
+  const person = document.getElementById('person');
+  const hand = document.getElementById('hand');
+  const highfive = document.getElementById('highfive');
+  const message = document.getElementById('message');
+  const input1 = document.getElementById('guess1');
+  const input2 = document.getElementById('guess2');
+  const andLabel = document.getElementById('andLabel');
+  const inputLabel = document.getElementById('inputLabel');
+  const btn = document.getElementById('goBtn');
+  const savedEl = document.getElementById('saved');
+  const fellEl = document.getElementById('fell');
+  const questionEl = document.getElementById('question');
+  const box = document.getElementById('box');
+  const boxContents = document.getElementById('boxContents');
+  const pit = document.getElementById('pit');
+
+  let saved = 0;
+  let fell = 0;
+  let busy = false;
+  let roundIndex = 0;
+
+  function showMessage(text, type) {
+    message.textContent = text;
+    message.className = 'message show ' + type;
+  }
+  function hideMessage() {
+    message.className = 'message';
+  }
+
+  function loadRound() {
+    const r = ROUNDS[roundIndex];
+    questionEl.textContent = r.question;
+    boxContents.innerHTML = r.reveal;
+    box.classList.remove('revealed');
+
+    // Show one or two input boxes depending on how many answers
+    if (r.answers.length === 2) {
+      inputLabel.textContent = 'Type BOTH guesses:';
+      andLabel.style.display = 'inline';
+      input2.style.display = 'inline-block';
+    } else {
+      inputLabel.textContent = 'Type your guess:';
+      andLabel.style.display = 'none';
+      input2.style.display = 'none';
+    }
+    input1.value = '';
+    input2.value = '';
+    input1.focus();
+  }
+
+  function resetPerson() {
+    person.classList.remove('falling');
+    hand.classList.remove('released');
+    highfive.classList.remove('show');
+    hideMessage();
+    busy = false;
+  }
+
+  function newPerson() {
+    const colors = ['#4169E1', '#32CD32', '#FF8C00', '#9370DB', '#20B2AA', '#FF69B4', '#FFD700'];
+    person.querySelector('.body').style.background = colors[Math.floor(Math.random() * colors.length)];
+    resetPerson();
+    roundIndex = (roundIndex + 1) % ROUNDS.length;
+    loadRound();
+  }
+
+  function checkAnswers() {
+    const r = ROUNDS[roundIndex];
+    const g1 = input1.value.trim().toLowerCase();
+    if (!g1) return null; // need at least one input
+
+    if (r.answers.length === 1) {
+      return r.answers[0].includes(g1);
+    }
+    // Two-answer: both inputs must match, order doesn't matter
+    const g2 = input2.value.trim().toLowerCase();
+    if (!g2) return null;
+    const [a, b] = r.answers;
+    const match1 = a.includes(g1) && b.includes(g2);
+    const match2 = a.includes(g2) && b.includes(g1);
+    return match1 || match2;
+  }
+
+  function handleGuess() {
+    if (busy) return;
+    const result = checkAnswers();
+    if (result === null) return; // empty inputs
+    busy = true;
+
+    if (result === true) {
+      showMessage('YES! High five! 🎉', 'right');
+      highfive.classList.add('show');
+      box.classList.add('revealed');
+      saved++;
+      savedEl.textContent = saved;
+      setTimeout(() => { newPerson(); }, 2600);
+    } else {
+      showMessage('Oh no! Into the pit! 😱', 'wrong');
+      const fallenColor = person.querySelector('.body').style.background || '#4169E1';
+      hand.classList.add('released');
+      setTimeout(() => { person.classList.add('falling'); }, 300);
+      setTimeout(() => { addFallen(fallenColor); }, 1400);
+      setTimeout(() => { box.classList.add('revealed'); }, 1500);
+      fell++;
+      fellEl.textContent = fell;
+      setTimeout(() => { newPerson(); }, 3600);
+    }
+  }
+
+  function addFallen(color) {
+    const f = document.createElement('div');
+    f.className = 'fallen';
+    f.style.background = color;
+    // Random spot inside the pit, with slight pile-up near the bottom
+    const x = 10 + Math.random() * 75;
+    const y = 5 + Math.random() * 25;
+    const rot = (Math.random() * 120) - 60;
+    f.style.left = x + '%';
+    f.style.bottom = y + 'px';
+    f.style.transform = `rotate(${rot}deg)`;
+    pit.appendChild(f);
+  }
+
+  btn.addEventListener('click', handleGuess);
+  [input1, input2].forEach(inp => {
+    inp.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleGuess();
+    });
+  });
+
+  // Start
+  loadRound();
+</script>
+
+</body>
+</html>
