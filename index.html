@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Diana's Favorites</title>
 <style>
   html, body { height: 100%; margin: 0; }
@@ -10,7 +10,8 @@
   body {
     font-family: 'Comic Sans MS', 'Marker Felt', sans-serif;
     background: #87CEEB;
-    height: 100dvh;
+    /* --app-h is set from JS via visualViewport; falls back to dvh on browsers that don't fire it */
+    height: var(--app-h, 100dvh);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -42,13 +43,15 @@
     min-height: 0;
     width: 100%;
     overflow: hidden;
-    /* Sizes scale with the actual visible viewport (dvmin/dvh shrink when the keyboard opens) */
-    --ground-h: clamp(120px, 26dvh, 230px);
-    --box-size: clamp(110px, 28dvmin, 220px);
-    --pit-w: clamp(170px, 40dvmin, 280px);
-    --pit-h: clamp(60px, 14dvmin, 110px);
-    --person-w: clamp(40px, 9dvmin, 60px);
-    --person-h: clamp(70px, 15dvmin, 100px);
+    /* Sizes scale with the actual visible viewport — mins are small enough to fit
+       even when an on-screen keyboard takes ~half the screen. */
+    --ground-h: clamp(70px, 24cqh, 230px);
+    --box-size: clamp(70px, 30cqh, 220px);
+    --pit-w: clamp(130px, 50cqh, 280px);
+    --pit-h: clamp(40px, 13cqh, 110px);
+    --person-w: clamp(30px, 8cqh, 60px);
+    --person-h: clamp(50px, 14cqh, 100px);
+    container-type: size;
   }
 
   /* The ground: grass on top, then thick dirt where the pit is dug */
@@ -459,6 +462,20 @@
 </div>
 
 <script>
+  // Pin body height to the actual visible viewport so Android Chrome doesn't
+  // push content offscreen when the keyboard opens.
+  function syncAppHeight() {
+    const h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+    document.documentElement.style.setProperty('--app-h', h + 'px');
+  }
+  syncAppHeight();
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', syncAppHeight);
+    window.visualViewport.addEventListener('scroll', syncAppHeight);
+  }
+  window.addEventListener('resize', syncAppHeight);
+  window.addEventListener('orientationchange', syncAppHeight);
+
   // Each round has a question, accepted answers (array of arrays — for ANDs, two arrays),
   // and HTML to show inside the box on reveal.
   const ROUNDS = [
