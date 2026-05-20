@@ -638,10 +638,9 @@
       hand.classList.add('released');
       setTimeout(() => { person.classList.add('falling'); }, 300);
       setTimeout(() => { addFallen(fallenColor); }, 1400);
-      setTimeout(() => { box.classList.add('revealed'); }, 1500);
       fell++;
       fellEl.textContent = fell;
-      setTimeout(() => { newPerson(); }, 3600);
+      setTimeout(() => { newPerson(); }, 2800);
     }
   }
 
