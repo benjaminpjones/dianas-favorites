@@ -383,6 +383,7 @@
     font-weight: bold;
   }
   button:hover { background: #FF69B4; }
+  #goBtn { margin-top: 8px; }
 
   .message {
     position: absolute;
@@ -418,12 +419,65 @@
     color: #4B0082;
     z-index: 50;
   }
+
+  /* Menu button + dropdown panel (top-left, mirrors the score chip) */
+  .menu-btn {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    background: white;
+    border: 3px solid #FFD700;
+    border-radius: 12px;
+    padding: 5px 12px;
+    font-size: clamp(13px, 2.2vmin, 18px);
+    font-family: inherit;
+    font-weight: bold;
+    color: #4B0082;
+    cursor: pointer;
+    z-index: 60;
+  }
+  .menu-btn:hover { background: #FFE4F1; }
+
+  .menu-panel {
+    position: fixed;
+    top: 48px;
+    left: 10px;
+    background: white;
+    border: 3px solid #FF1493;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+    overflow: hidden;
+    z-index: 61;
+    display: none;
+  }
+  .menu-panel.open { display: block; }
+
+  .menu-panel button {
+    display: block;
+    width: 100%;
+    background: white;
+    color: #4B0082;
+    border: none;
+    border-radius: 0;
+    padding: 11px 18px;
+    text-align: left;
+    white-space: nowrap;
+    font-size: clamp(14px, 2.4vmin, 20px);
+  }
+  .menu-panel button:hover { background: #FFE4F1; }
+  .menu-panel button.active { background: #FF1493; color: white; }
 </style>
 </head>
 <body>
 
-<h1>Diana's Favorites</h1>
+<h1 id="title">Diana's Favorites</h1>
 <p class="question" id="question">What is Diana's favorite color?</p>
+
+<button class="menu-btn" id="menuBtn">☰ Menu</button>
+<div class="menu-panel" id="menuPanel">
+  <button data-set="diana">⭐ Diana's Favorites</button>
+  <button data-set="warner">⭐ Warner's Favorites</button>
+</div>
 
 <div class="score">
   Saved: <span id="saved">0</span> | Fell in pit: <span id="fell">0</span>
@@ -452,13 +506,9 @@
 </div>
 
 <div class="controls">
-  <label id="inputLabel" for="guess1">Type your guess:</label>
-  <div class="input-row">
-    <input type="text" id="guess1" autocomplete="off" autofocus>
-    <span class="input-and" id="andLabel" style="display:none;">AND</span>
-    <input type="text" id="guess2" autocomplete="off" style="display:none;">
-    <button id="goBtn">Guess!</button>
-  </div>
+  <label id="inputLabel">Type your guess:</label>
+  <div class="input-row" id="inputRow"></div>
+  <button id="goBtn">Guess!</button>
 </div>
 
 <script>
@@ -478,7 +528,11 @@
 
   // Each round has a question, accepted answers (array of arrays — for ANDs, two arrays),
   // and HTML to show inside the box on reveal.
-  const ROUNDS = [
+  // FAVORITES groups the rounds by whose favorites they are; the menu switches between them.
+  const FAVORITES = {
+   diana: {
+    title: "Diana's Favorites",
+    rounds: [
     {
       question: "What is Diana's favorite color?",
       answers: [['red']],
@@ -534,16 +588,80 @@
       answers: [['hawaiian', 'hawaii'], ['cheese']],
       reveal: '<span>🍕🍍</span><span>🍕🧀</span>'
     }
-  ];
+    ]
+   },
+   warner: {
+    title: "Warner's Favorites",
+    rounds: [
+    {
+      question: "Name ALL SIX of Warner's favorite colors!",
+      answers: [['orange'], ['yellow'], ['green'], ['blue'], ['gold'], ['silver']],
+      reveal: '<span style="line-height:1.2;">🟠🟡🟢<br>🔵🟡⚪</span>'
+    },
+    {
+      question: "What are Warner's TWO favorite animals?",
+      answers: [['hedgehog', 'hedge hog'], ['kitty', 'cat', 'kitty cat', 'cats', 'kitties']],
+      reveal: '<span>🦔</span><span>🐱</span>'
+    },
+    {
+      question: "Name ALL THREE of Warner's favorite cars!",
+      answers: [['lamborghini', 'lambourghini', 'lambo'], ['ferrari'], ['tesla']],
+      reveal: '<span>🏎️</span>'
+    },
+    {
+      question: "What is Warner's favorite shape?",
+      answers: [['circle']],
+      reveal: '<div style="width:calc(var(--box-size)*0.6);height:calc(var(--box-size)*0.6);border-radius:50%;background:radial-gradient(circle at 35% 35%,#5DADE2,#1B4F8C);box-shadow:inset -10px -10px 20px rgba(0,0,0,0.2);"></div>'
+    },
+    {
+      question: "Name ALL THREE of Warner's favorite sports!",
+      answers: [['soccer', 'football'], ['basketball'], ['paintball']],
+      reveal: '<span>⚽🏀🎨</span>'
+    },
+    {
+      question: "What is Warner's favorite vehicle?",
+      answers: [['electric car', 'electric', 'ev', 'electric cars']],
+      reveal: '<span>🔌</span><span>🚗</span>'
+    },
+    {
+      question: "What are Warner's TWO favorite books?",
+      answers: [['magic tree house', 'magic treehouse'], ['the bad guys', 'bad guys', 'badguys']],
+      reveal: '<span>📖🌳</span><span>😎</span>'
+    },
+    {
+      question: "Name ALL FOUR of Warner's favorite games!",
+      answers: [['minecraft'], ['goat simulator', 'goat sim'], ['minecraft dungeons'], ['mario kart world', 'mario kart', 'mariokart']],
+      reveal: '<span>⛏️🟩</span><span>🐐🏎️</span>'
+    },
+    {
+      question: "What is Warner's favorite time of day?",
+      answers: [['morning', 'the morning', 'mornings']],
+      reveal: '<span>🌅</span>'
+    },
+    {
+      question: "Name ALL THREE of Warner's favorite foods!",
+      answers: [['ramen'], ['kimbap', 'kim bap', 'gimbap'], ['candy']],
+      reveal: '<span>🍜</span><span>🍙</span><span>🍬</span>'
+    },
+    {
+      question: "What are Warner's TWO favorite pizzas?",
+      answers: [['pepperoni', 'peperoni'], ['cheese']],
+      reveal: '<span>🍕🔴</span><span>🍕🧀</span>'
+    }
+    ]
+   }
+  };
+
+  let currentSet = 'diana';
+  let ROUNDS = FAVORITES[currentSet].rounds;
 
   const person = document.getElementById('person');
   const hand = document.getElementById('hand');
   const highfive = document.getElementById('highfive');
   const message = document.getElementById('message');
-  const input1 = document.getElementById('guess1');
-  const input2 = document.getElementById('guess2');
-  const andLabel = document.getElementById('andLabel');
+  const inputRow = document.getElementById('inputRow');
   const inputLabel = document.getElementById('inputLabel');
+  let inputEls = [];
   const btn = document.getElementById('goBtn');
   const savedEl = document.getElementById('saved');
   const fellEl = document.getElementById('fell');
@@ -551,6 +669,9 @@
   const box = document.getElementById('box');
   const boxContents = document.getElementById('boxContents');
   const pit = document.getElementById('pit');
+  const titleEl = document.getElementById('title');
+  const menuBtn = document.getElementById('menuBtn');
+  const menuPanel = document.getElementById('menuPanel');
 
   let saved = 0;
   let fell = 0;
@@ -565,25 +686,43 @@
     message.className = 'message';
   }
 
+  // Build one text box per answer group, joined by "AND" labels.
+  function buildInputs(n) {
+    inputRow.innerHTML = '';
+    inputEls = [];
+    for (let i = 0; i < n; i++) {
+      if (i > 0) {
+        const and = document.createElement('span');
+        and.className = 'input-and';
+        and.textContent = 'AND';
+        inputRow.appendChild(and);
+      }
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.autocomplete = 'off';
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleGuess(); });
+      inputRow.appendChild(inp);
+      inputEls.push(inp);
+    }
+  }
+
   function loadRound() {
     const r = ROUNDS[roundIndex];
     questionEl.textContent = r.question;
     boxContents.innerHTML = r.reveal;
     box.classList.remove('revealed');
 
-    // Show one or two input boxes depending on how many answers
-    if (r.answers.length === 2) {
-      inputLabel.textContent = 'Type BOTH guesses:';
-      andLabel.style.display = 'inline';
-      input2.style.display = 'inline-block';
-    } else {
+    // One text box per favorite you have to name.
+    const n = r.answers.length;
+    if (n === 1) {
       inputLabel.textContent = 'Type your guess:';
-      andLabel.style.display = 'none';
-      input2.style.display = 'none';
+    } else if (n === 2) {
+      inputLabel.textContent = 'Type BOTH guesses:';
+    } else {
+      inputLabel.textContent = 'Type ALL ' + n + ' guesses:';
     }
-    input1.value = '';
-    input2.value = '';
-    input1.focus();
+    buildInputs(n);
+    inputEls[0].focus();
   }
 
   function resetPerson() {
@@ -604,19 +743,23 @@
 
   function checkAnswers() {
     const r = ROUNDS[roundIndex];
-    const g1 = input1.value.trim().toLowerCase();
-    if (!g1) return null; // need at least one input
+    const guesses = inputEls.map(i => i.value.trim().toLowerCase());
+    if (guesses.some(g => !g)) return null; // every box must be filled
 
-    if (r.answers.length === 1) {
-      return r.answers[0].includes(g1);
+    // Each answer group must be satisfied by a distinct guess; order doesn't matter.
+    const used = new Array(guesses.length).fill(false);
+    for (const group of r.answers) {
+      let found = false;
+      for (let i = 0; i < guesses.length; i++) {
+        if (!used[i] && group.includes(guesses[i])) {
+          used[i] = true;
+          found = true;
+          break;
+        }
+      }
+      if (!found) return false;
     }
-    // Two-answer: both inputs must match, order doesn't matter
-    const g2 = input2.value.trim().toLowerCase();
-    if (!g2) return null;
-    const [a, b] = r.answers;
-    const match1 = a.includes(g1) && b.includes(g2);
-    const match2 = a.includes(g2) && b.includes(g1);
-    return match1 || match2;
+    return true;
   }
 
   function handleGuess() {
@@ -659,13 +802,45 @@
   }
 
   btn.addEventListener('click', handleGuess);
-  [input1, input2].forEach(inp => {
-    inp.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') handleGuess();
+
+  // --- Menu: switch whose favorites we're guessing ---
+  function updateMenuActive() {
+    menuPanel.querySelectorAll('button').forEach(b => {
+      b.classList.toggle('active', b.dataset.set === currentSet);
     });
+  }
+
+  function switchTo(setKey) {
+    if (!FAVORITES[setKey]) return;
+    currentSet = setKey;
+    ROUNDS = FAVORITES[setKey].rounds;
+    titleEl.textContent = FAVORITES[setKey].title;
+    document.title = FAVORITES[setKey].title;
+    // Fresh start for the new set
+    saved = 0;
+    fell = 0;
+    savedEl.textContent = '0';
+    fellEl.textContent = '0';
+    pit.innerHTML = '';
+    roundIndex = 0;
+    resetPerson();
+    loadRound();
+    updateMenuActive();
+    menuPanel.classList.remove('open');
+  }
+
+  menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    menuPanel.classList.toggle('open');
   });
+  menuPanel.addEventListener('click', (e) => e.stopPropagation());
+  menuPanel.querySelectorAll('button').forEach(b => {
+    b.addEventListener('click', () => switchTo(b.dataset.set));
+  });
+  document.addEventListener('click', () => menuPanel.classList.remove('open'));
 
   // Start
+  updateMenuActive();
   loadRound();
 </script>
 
